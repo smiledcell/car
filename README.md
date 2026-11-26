@@ -126,25 +126,27 @@ node scripts/check-release.cjs
 
 本项目无需 `npm install` 即可执行现有测试和复制构建。修改视觉模块或模型后，仍须先按上文重新打包运行时。Pages 不运行后端；本项目目前无需其他托管平台。
 
-## CI/CD exploration — 已核查配置与当前执行结果
+## CI/CD exploration — 第一次真实部署尝试
 
-CI（Continuous Integration）是自动构建/检查变更；本作业中的 CD（Continuous Deployment）是自动发布接受的版本。当前已实现工作流，但**尚未产生可查验的 GitHub 部署**；下面如实记录已检查的内容和阻碍，不冒充老师要求的一次真实部署观察。
+2026-11-26 核查了 [Actions run #1](https://github.com/smiledcell/car/actions/runs/45730701731)（attempt 1）。该次部署尝试没有成功上线，不能把构建成功写成部署成功。
 
-| 记录项 | 已核查的事实 |
+| 记录项 | 实际观察 |
 | --- | --- |
-| 配置来源 | 本仓库 [Pages 工作流](<.github/workflows/pages.yml>)、[构建脚本](<scripts/build.cjs>)、[发布校验脚本](<scripts/check-release.cjs>) |
-| 实际部署 / 源码 commit | 团队仓库已确认为 [smiledcell/car](https://github.com/smiledcell/car)，本地已初始化 Git；首次推送后需从 Actions 核对实际 run 与对应 commit，当前尚未验证远程部署 |
-| 触发 | 配置支持 `main` push、向 `main` 的 PR 与手动运行；只有非 PR 的 `main` 构建会部署 |
-| 检查与构建 | 已在本地执行已有静态/核心测试、生成完整发布包并运行发布校验；远程执行尚未发生 |
-| 发布文件 | 构建生成完整 `dist/`：默认首页、游戏入口、本地脚本、模型及上游许可；普通构建不重新生成内嵌运行时 |
-| 结果 / 阻碍 | 本地结果见下文；远程工作流和 Pages 尚未验证，真实网址与 Actions run 需在远程执行后核对 |
-| 自动步骤 | 工作流已实现测试、构建、发布校验、上传与部署；远程生效需实际推送和 Pages 设置 |
-| 人工步骤 | 确定团队仓库并授权发布、选择 Pages 来源、同伴审核、核对真实运行日志、浏览器试玩、全员确认 |
-| 已实现的检查 | 发布校验验证首页在项目子路径及本地文件下的跳转与参数保留，核对脚本、模型和许可文件存在，并核对入口与源码一致 |
-| 有用的缺失检查 | 工作流没有真实浏览器 WebGL 启动、驾驶、有效圈数与重开测试；静态检查及部署成功均不能替代人工试玩 |
-| 全员确认 | 由各成员本人完成，不由 AI 代为确认 |
+| 源码版本 | [70d2b11](https://github.com/smiledcell/car/commit/70d2b11750b90b5ab300a0b2db06f5844f6aec94)，分支 `main`；这是被检查的较早源码，不是 README 自身的最终 hash |
+| 触发与时间 | 首次推送到 `main` 触发 `push` 事件；北京时间 2026-11-26 08:43:00 开始，08:43:18 结束，整体结果 `failure` |
+| 检查 / 构建 | [Test and build static site](https://github.com/smiledcell/car/actions/runs/45730701731/job/139611685061) 成功；任务步骤记录确认 checkout、Node.js 设置、已有静态/核心测试、完整发布构建、首页/脚本/许可校验、源码摘要与产物上传均为 `success` |
+| 发布文件 / 产物 | 工作流将完整 `dist/` 上传为 `github-pages` artifact，ID `15077205294`，API 记录压缩大小 31,407,611 字节，关联同一源码 SHA；内容按构建清单包含默认首页、游戏入口、脚本、模型和许可。已核查上传步骤与产物元数据，没有下载解包逐文件复查该远程 artifact |
+| 部署结果 / 阻碍 | [Deploy shared game](https://github.com/smiledcell/car/actions/runs/45730701731/job/139611756174) 在 `Configure Pages` 失败；`Deploy Pages artifact` 被跳过，所以本次没有发布成功的站点 |
+| 实际错误 | 错误注释为 `HttpError: Not Found`，并要求确认仓库已启用 Pages、来源配置为 GitHub Actions。这支持优先检查 Pages 设置；仅凭该错误不能断言所有权限与设置的当前状态 |
+| 自动步骤 | push 自动启动测试、构建、发布校验和 artifact 上传，并尝试配置与部署；自动流程没有越过失败的配置步骤 |
+| 人工步骤 | 授权账号需检查 Settings → Pages 的启用与来源设置，修正后重新运行；同伴审查、日志核对、浏览器试玩与全员确认仍需人工完成 |
+| 实际运行的一项检查 | `Validate homepage, scripts and license files` 远程步骤成功；对应 [check-release.cjs](<scripts/check-release.cjs>) 验证首页跳转和参数保留、源码副本一致及必要脚本/模型/许可文件存在 |
+| 一项有用的缺失检查 | 没有真实浏览器 WebGL 启动、键盘驾驶、有效圈数及重开冒烟检查；这些应人工验证，静态/核心测试通过不证明游戏正确 |
+| 全员检查与确认 | 尚未记录；需各成员实际打开该 run 并本人确认，不由 AI 代为确认 |
 
-团队仓库确定后，必须检查至少一次实际部署，并在一位成员的文档 PR 中将上表的阻碍更新为该次 run 链接、源码 commit、实际日志步骤与结果。较早的一次真实部署也可以；不得只凭配置推断远程步骤已运行。
+证据来源：[run 元数据](https://api.github.com/repos/smiledcell/car/actions/runs/45730701731)、[任务与步骤结果](https://api.github.com/repos/smiledcell/car/actions/runs/45730701731/jobs)、[部署错误注释](https://api.github.com/repos/smiledcell/car/check-runs/139611756174/annotations)、[产物元数据](https://api.github.com/repos/smiledcell/car/actions/runs/45730701731/artifacts)。本次核查基于公开 API 的实际执行记录，未取得完整原始文本日志，不声称已逐行阅读完整日志。artifact 有保留期限，元数据不能替代永久发布结果。
+
+CI 自动构建/检查变更；本作业中的 CD 自动发布接受的版本。本次记录显示 **CI 构建成功，但 CD 在 Pages 配置阶段失败**。修复后仍应查看新的真实运行和网站结果；最终报告另存最终团队 commit 与匹配部署记录。本节保留首次尝试作为历史观察，通过文档 PR 接受同伴审查。
 
 ## Contributors
 
@@ -160,7 +162,7 @@ CI（Continuous Integration）是自动构建/检查变更；本作业中的 CD�
 
 本次 Week 07 准备使用 AI 编码助手（DeepSeek Harness 会话）辅助检查本地项目的静态部署适用性、添加默认首页及构建入口、实现 Pages Actions 工作流与发布校验脚本、实际执行已有测试/构建/发布校验，并整理 README 的运行/发布说明、配置事实与当前阻碍。此说明不推定 Week 05 的全部 AI 使用情况；成员如有其他实质 AI 协助，应在相关条目或 PR 中补充实际情况。
 
-AI 未替成员执行 GitHub 登录、确认个人贡献或进行同伴审核；当前没有真实线上部署记录可供本次填写。成员须人工复核文档、命令、贡献与运行结果。个人学习总结由每位成员自行撰写，不由 AI 生成、翻译、改写或润色；本公共 README 不收录私人学习总结及学号。
+AI 未替成员执行 GitHub 登录、确认个人贡献或进行同伴审核；本次还辅助核查了首次真实 Actions 运行的公开任务结果、错误注释及产物元数据，并整理本节观察。成员须自行查看证据并确认，不将 AI 核查等同于全员确认；尚未确认游戏成功上线。个人学习总结由每位成员自行撰写，不由 AI 生成、翻译、改写或润色；本公共 README 不收录私人学习总结及学号。
 
 ## 已知限制与最终验收
 
