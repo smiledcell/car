@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>APEX FORMULA 2026 · 开放式赛车模拟器</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { width: 100%; height: 100%; overflow: hidden; background: #000;
+    font-family: 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', system-ui, sans-serif;
+    user-select: none; }
+  canvas { display: block; }
+  #hud { position: fixed; inset: 0; pointer-events: none; color: #fff; }
+  .panel { position: absolute; background: rgba(0,0,0,.42); backdrop-filter: blur(8px);
+    border: 1px solid rgba(255,255,255,.16); border-radius: 12px; padding: 10px 18px;
+    font-size: 14px; line-height: 1.75; letter-spacing: .5px; }
+  #stats { top: 20px; right: 20px; text-align: right; min-width: 160px; }
+  #stats span { font-variant-numeric: tabular-nums; font-weight: 700; color: #7fe0ff; }
+  #speedo { left: 260px; bottom: 20px; padding: 6px 22px 10px; text-align: center; }
+  #minimapPanel { left: 20px; bottom: 20px; width: 226px; height: 222px; padding: 10px 12px; }
+  #minimapPanel strong { display: block; color: #f3f3f6; font: 700 11px/18px system-ui,sans-serif; letter-spacing: 1.6px; }
+  #minimap { width: 200px; height: 178px; }
+  @media (max-width: 620px) { #minimapPanel { transform: scale(.75); transform-origin: bottom left; } #speedo { left: 184px; transform: scale(.8); transform-origin: bottom left; } }
+  #speed { font-size: 46px; font-weight: 800; font-variant-numeric: tabular-nums; line-height: 1.1; }
+  #speedo small { font-size: 12px; opacity: .65; letter-spacing: 3px; }
+  #center { position: absolute; top: 46%; left: 50%; transform: translate(-50%,-50%);
+    text-align: center; font-size: 15px; opacity: .95; transition: opacity .5s;
+    background: rgba(0,0,0,.45); padding: 18px 34px; border-radius: 14px;
+    border: 1px solid rgba(255,255,255,.15); }
+  #center.hide { opacity: 0; }
+  #center b { display: block; font-size: 26px; margin-bottom: 8px; letter-spacing: 2px; }
+  #menu { z-index: 5; top: 20px; left: 20px; display: grid; gap: 8px; pointer-events: auto; min-width: 230px; }
+  #menu strong { color: #7fe0ff; letter-spacing: 1px; }
+  #menu label, #pitModal label { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+  select, button { color: #fff; background: #182536; border: 1px solid #55708b; border-radius: 6px; padding: 5px 8px; }
+  button { cursor: pointer; font-weight: 700; }
+  .pit-modal { z-index: 8; left: 50%; top: 50%; transform: translate(-50%, -50%); display: grid; gap: 8px; pointer-events: auto; min-width: 250px; }
+  .pit-modal[hidden] { display: none; }
+</style>
+</head>
+<body>
+<div id="startupWarning" class="panel" hidden style="z-index:20;top:50%;left:50%;transform:translate(-50%,-50%);max-width:560px;color:#ffd2d2;text-align:center">
+  <b>页面没有加载完成 / Page failed to load</b>
+  <div id="startupWarningText" style="margin-top:8px;line-height:1.6"></div>
+</div>
+<script>
+  // The page uses local classic scripts so it also works when opened directly.
+  (() => {
+    const warning = document.getElementById('startupWarning');
+    const text = document.getElementById('startupWarningText');
+    let shown = false;
+    const show = message => {
+      if (shown) return;
+      shown = true;
+      text.textContent = message;
+      warning.hidden = false;
+    };
+    window.addEventListener('error', event => {
+      const message = event.error?.message || event.message || '未知脚本错误';
+      if (!window.THREE) {
+        show(`Three.js 加载失败：${message}。请确认当前文件夹下 js/apex-runtime.js 完整，且未被浏览器或安全软件拦截。`);
+      } else if (event.filename && event.filename.includes('car.html')) {
+        show(`页面脚本运行失败：${message}。请打开浏览器开发者工具（F12）查看 Console。`);
+      }
+    });
+    window.addEventListener('unhandledrejection', event => {
+      const reason = event.reason?.message || String(event.reason || '未知 Promise 错误');
+      show(`页面异步加载失败：${reason}。请打开浏览器开发者工具（F12）查看 Console。`);
+    });
+  })();
+</script>
+<div id="menu" class="panel menu-panel">
+  <strong>APEX FORMULA 2026</strong>
+  <label>赛道 / Circuit <select id="trackSelect"></select></label>
+  <label>语言 / Language <select id="languageSelect"><option value="zh">中文</option><option value="en">English</option></select></label>
+  <label>模式 / Mode <select id="modeSelect"><option value="race">正赛 / Race</option><option value="qualifying">排位 / Qualifying</option></select></label>
+  <label>长度 / Length <select id="lengthSelect"><option value="5">5 圈 / 5 laps</option><option value="quarter">1/4 比赛距离 / Quarter</option><option value="half">1/2 比赛距离 / Half</option><option value="threequarter">3/4 比赛距离 / Three-quarter</option><option value="full">完整距离 / Full</option></select></label>
+  <label>难度 / Difficulty <select id="difficultySelect"><option value="easy">简单 / Easy</option><option value="medium" selected>中等 / Medium</option><option value="hard">困难 / Hard</option></select></label>
+  <button id="startBtn" type="button">开始比赛 / Start Race</button>
+</div>
+<div id="resultModal" class="panel pit-modal" hidden>
+  <b>比赛结果 / Race Result</b>
+  <div id="resultText">完成比赛 / Finished</div>
+  <div id="classification" style="max-height:45vh;overflow:auto;font-size:13px"></div>
+  <button id="restartBtn">重新开始 / Restart</button>
+</div>
+<div id="pitModal" class="panel pit-modal" hidden>
+  <b>选择轮胎 / Select Tyre</b>
+  <label><input type="radio" name="tyre" value="S"> Soft 软胎</label>
+  <label><input type="radio" name="tyre" value="M" checked> Medium 中性胎</label>
+  <label><input type="radio" name="tyre" value="H"> Hard 硬胎</label>
+  <label><input type="radio" name="tyre" value="I"> Intermediate 半雨胎</label>
+  <label><input type="radio" name="tyre" value="W"> Wet 全雨胎</label>
+  <button id="pitConfirm">确认换胎 / Confirm</button>
+</div>
+<div id="qualPanel" class="panel" hidden style="z-index:9;left:20px;top:20px;max-height:75vh;overflow:auto;pointer-events:auto;min-width:300px">
+ <b id="qualTitle">排位成绩 / Qualifying</b>
+ <div id="qualStatus"></div><div id="qualRows" style="font-size:12px;line-height:1.55"></div>
+ <button id="qualContinue" hidden>继续 / Continue</button>
+ <button id="qualSkip">结束本节并等待已出发圈 / End session</button>
+</div>
+<div id="hud">
+  <div class="panel" id="stats">
+    <div>圈数 <span id="lap">1</span></div>
+    <div>本圈 <span id="time">0.00</span></div>
+    <div>总时间 / Total <span id="totalTime">0.00</span></div>
+    <div>前车 / Ahead <span id="gapHud">--</span></div>
+    <div>最佳 / Best <span id="best">--.--</span></div>
+    <div>位置 / Position <span id="position">1/4</span></div>
+    <div>轮胎 / Tyre <span id="tyreHud">M 0%</span></div>
+    <div>能量 / ERS <span id="ersHud">100%</span></div>
+    <div>天气 / Weather <span id="weatherHud">DRY</span></div>
+    <div>抓地 / Grip <span id="gripHud">1.00</span></div>
+    <div>进站 / Pit <span id="pitHud">--</span></div>
+  </div>
+  <div class="panel" id="minimapPanel"><strong>赛道 · CIRCUIT</strong><canvas id="minimap" width="200" height="178" role="img" aria-label="赛道俯视图及赛车位置"></canvas></div>
+  <div class="panel" id="speedo"><div id="speed">0</div><small>KM/H · GEAR <span id="gear">1</span></small></div>
+  <div id="center"><b>🏁 3D 赛车</b>方向键 / WASD 驾驶 &nbsp;·&nbsp; R 重置</div>
+</div>
+
+<!-- 预打包原版模块和内嵌 GLB：支持直接双击 file:// 与 HTTP。 -->
+<script src="./js/tracks.js"></script>
+<script src="./js/race-core.js"></script>
+<script src="./js/ai-core.js"></script>
+<script src="./js/qualifying-core.js"></script>
+<script src="./js/pit-core.js"></script>
+<script src="./js/weather-core.js"></script>
+<script src="./js/apex-runtime.js"></script>
+<script>
+window.APEX_READY.then(() => {
+  const script = document.createElement('script');
+  script.src = './js/car-game.js';
+  script.onerror = () => { document.getElementById('startupWarningText').textContent = '无法加载 js/car-game.js，请保持项目目录完整。'; document.getElementById('startupWarning').hidden = false; };
+  document.body.appendChild(script);
+}).catch(error => {
+  document.getElementById('startupWarningText').textContent = '赛车资源初始化失败：' + (error.message || error);
+  document.getElementById('startupWarning').hidden = false;
+});
+</script>
+</body>
+</html>

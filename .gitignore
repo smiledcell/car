@@ -1,0 +1,14 @@
+node_modules/
+.cache/
+__pycache__/
+dist/
+.env
+.env.*
+*.log
+.browser-test-profile/
+test-results/
+*.backup
+/car-*-preview.png
+/W07_*.md
+/*验收记录.md
+/APEX_FORMULA_2026改造规划.md

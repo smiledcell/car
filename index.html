@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>赛车游戏 · Racing Game</title>
+  <script>
+    // Relative URL supports both GitHub Pages project paths and direct file opening.
+    const gameUrl = new URL('./car.html', window.location.href);
+    gameUrl.search = window.location.search;
+    gameUrl.hash = window.location.hash;
+    window.location.replace(gameUrl.href);
+  </script>
+</head>
+<body>
+  <p>正在打开游戏 / Opening the game…</p>
+  <p><a href="./car.html">进入游戏 / Open game</a></p>
+  <noscript>游戏需要启用 JavaScript / JavaScript is required to play.</noscript>
+</body>
+</html>

@@ -1,0 +1,183 @@
+# Car 赛车游戏 · Week 05 / Week 07 Group Project
+
+## 游戏目的
+
+这是一个在浏览器中运行的 3D 赛车游戏。玩家选择赛道、难度和比赛长度，使用键盘驾驶，完成有效圈数并争取更好的比赛排名或圈速；也可以先参加排位，再进入正赛。Week 07 沿用本项目，重点是可复现发布、文档协作与部署验证，不是重新制作游戏。
+
+## 在线游玩与发布状态
+
+- **共享可玩网址：待发布负责人在真实部署成功后填写。** 当前没有在本文中确认任何线上地址，不能将本地地址当作公共网站。
+- 计划托管：**GitHub Pages**。当前游戏为静态 HTML/JavaScript/WebGL，不需要运行后端；无需因 Pages 改写游戏。
+- 默认首页：[index.html](<index.html>) 自动进入 [car.html](<car.html>)，保留查询参数和锚点；采用相对路径，以兼容仓库子路径。
+- 全组共用同一可玩站点，不部署成员各自的 fork。
+- 公共仓库链接：[smiledcell/car](https://github.com/smiledcell/car)。
+
+> 发布前必须补齐真实网址和仓库链接。下面的部署步骤是操作说明，不表示工作流或线上部署已经完成。
+
+## 项目结构与启动原理
+
+本文件夹是小组作业，不是 APEX 原版仓库。`third-party/apex-formula-2026/` 仅存放使用到的上游模块、库、素材和许可副本，不包含完整项目或 Git 历史。完整原版项目留在本文件夹之外。
+
+这是对 [APEX FORMULA 2026](https://github.com/ahacker-1/apex-formula-2026) 原项目的本地集成与改编。实际游戏入口是 [car.html](<car.html>)，不是原项目菜单页或另一个演示页面。页面加载经典脚本 [apex-runtime.js](<js/apex-runtime.js>)：它将原项目模块、Three.js 和 base64 GLB 打包为 IIFE，提供 `THREE`、`APEX_VISUALS` 和 `APEX_READY`；模型通过 `GLTFLoader.parse` 从内嵌字节解析，不发起模型 fetch。`APEX_READY` 完成后才加载经典脚本 [car-game.js](<js/car-game.js>)。比赛、排位、AI、维修区、天气与轮胎逻辑继续由本项目的独立核心脚本提供。
+
+## 运行：支持直接双击
+
+**无需 `npm install`，也无需 HTTP 服务即可游玩。** 保持项目目录完整，在支持 WebGL 的现代浏览器中双击根目录 [index.html](<index.html>)（自动进入 [car.html](<car.html>)），或构建后双击 [发布版首页](<dist/index.html>)，均可通过 `file://` 打开。不要只复制 HTML；需要保留同级脚本和发布目录中的完整相对路径。建议使用带实体键盘的桌面浏览器，并开启可用的硬件加速。
+
+也可选用 HTTP。在项目根目录运行：
+
+```bash
+python3 -m http.server 8765
+```
+
+Windows 也可使用 `py -m http.server 8765`。然后打开 <http://localhost:8765/car.html>。
+
+保持 [apex-formula-2026](<third-party/apex-formula-2026/>) 下的模块、库及素材和本地脚本、许可文件完整。出现加载错误时检查浏览器 Console、脚本路径和 WebGL 支持；HTTP 模式还可检查 Network 中的 404。当前页面不依赖浏览器 import map 或运行时 ES module 加载。
+
+## 当前集成内容
+
+- 实际调用原项目 [trackBuilder.js](<third-party/apex-formula-2026/js/trackBuilder.js>) 的 `buildCircuit` 构建赛道路面、护墙、看台、PIT 车库、地形和远景，沿用原版赛道主题；不是仅借用设计思路的简化替代场景。
+- 实际调用原项目 [car.js](<third-party/apex-formula-2026/js/car.js>) 的 `buildCarMesh`；[f1car-2026.glb](<third-party/apex-formula-2026/assets/f1car-2026.glb>) 已内嵌在运行时包中，启动时先解析模型并完成预加载，再启动游戏，不需要模型 URL 请求。原车构建器仍保留程序化模型能力。
+- HUD 小地图按原赛道采样绘制路径，标出起终点、PIT、玩家及 AI 位置。
+- 可选择 2026 赛历的 24 条赛道，提供键盘驾驶、三档 AI 难度、圈数、最佳圈、实时排名、结果页和可选本地最佳圈保存。
+- 正赛可选择 5 圈或分段/完整距离；排位采用 22 名车手的 Q1/Q2/Q3 淘汰流程，最终生成正赛发车表。AI 排位时间是确定性模拟成绩，不是实际驾驶成绩。
+- Soft / Medium / Hard / Intermediate / Wet 轮胎、磨损、温度、干湿抓地力、水漂风险、动态天气及雨/喷雾效果；ERS 能量与超车。
+- **维修区驾驶是本地适配，不是宣称原版已有完整可驾驶维修区。** 保留原版 `buildCircuit` 的 PIT 车库及维修墙，根据原车库位置推导入口、通道、停站框和出口，并接入现有进站核心：自动限速、超速处罚、停车换胎和 AI 基础进站。
+
+### 操作
+
+| 输入 | 功能 |
+| --- | --- |
+| 方向键 / WASD | 油门、制动/倒车、转向 |
+| Space | ERS 超车 |
+| R | 重置当前驾驶/排位状态 |
+| P | 请求进站，驶入维修区后选择轮胎 |
+| L | 手动限速开关；维修区另有自动限速 |
+
+换胎需要在停站框内低速停稳并选择轮胎，服务持续 3 秒；移动或离开会取消服务。当前维修区采用适配几何和简化碰撞，不代表真实赛道的正式维修区布局。
+
+## 源码打包、测试与发布
+
+已附带可直接运行的 [apex-runtime.js](<js/apex-runtime.js>) 及其 [许可注释文件](<js/apex-runtime.js.LEGAL.txt>)。仅在修改 [apex-entry.js](<js/apex-entry.js>)、上游视觉模块或模型后，才需要从项目根目录重新打包（需要 Node.js/npm，首次调用可能需要联网获取 esbuild；无需先执行 `npm install`）：
+
+```powershell
+npm.cmd exec --yes --package=esbuild -- esbuild js/apex-entry.js --bundle --format=iife --platform=browser --target=es2020 --alias:three=./third-party/apex-formula-2026/lib/three.module.js --loader:.glb=base64 --outfile=js/apex-runtime.js --legal-comments=linked
+```
+
+`--loader:.glb=base64` 将模型作为构建输入嵌入包中；它不是 JavaScript 模块，不能将该导入当作浏览器模块图继续解析。`--legal-comments=linked` 同时生成需要随包保留的许可注释文件。
+
+在项目根目录运行无第三方依赖的静态/数据及比赛核心测试：
+
+```bash
+node scripts/test.cjs
+```
+
+测试将页面内联脚本和本地外部脚本（包括经典运行时与实际游戏脚本）作为经典 JavaScript 编译，确认无 import map/module 启动桥接、运行时就绪后加载游戏、源码入口与本地构建输入、内嵌 GLB 内容及解析路径；仅使用临时 `.mjs` 对源码入口检查 ESM 语法，不把 GLB 当作 JS 模块遍历。随后执行比赛、排位、维修区和天气/轮胎核心测试。这些检查不执行实际浏览器启动，也不验证真实 WebGL、模型最终显示、键盘事件或渲染画面；`file://` 和 HTTP 的浏览器验收须另行执行。
+
+生成发布目录：
+
+```bash
+node scripts/build.cjs
+```
+
+发布构建仅复制已生成的运行时及依赖，不重新运行 esbuild，也不改写源页面或源脚本。输出 [dist/index.html](<dist/index.html>) 和 [dist/car.html](<dist/car.html>)，并保持以下依赖的相对路径：
+
+- 本地比赛核心、实际游戏脚本、源码入口、经典运行时及其许可注释（输出的 `js/` 目录）；
+- 可选浏览器自检脚本（输出的 `tests/game-smoke.js`）；
+- 原项目的 `third-party/apex-formula-2026/js/`、`lib/`、`assets/`；
+- 原项目的 `LICENSE`、`NOTICE`、`THIRD_PARTY_NOTICES.md` 和 `LICENSES/`。
+
+**交付完整的发布目录，而不是只交付 HTML。保持目录完整即可直接双击 [dist/car.html](<dist/car.html>)。** 也可选择通过 HTTP 发布：
+
+```bash
+python3 -m http.server 8765 --directory dist
+```
+
+打开 <http://localhost:8765/car.html>。可在页面 URL 上增加 `?selftest=1` 请求浏览器内集成自检；这些检查的结果须以本次实际浏览器执行为准，不应由静态测试推断通过。
+
+## GitHub Pages 发布说明
+
+### 本地准备
+
+1. 使用本作业目录作为团队公共仓库根目录；不要上传上一级浏览器配置、其他原版项目或私人报告。
+2. 保留完整源码、模型与许可文件；排除依赖、缓存和凭据。现有 [.gitignore](<.gitignore>) 忽略发布目录 `dist/`，适合由 Actions 生成产物。
+3. 准备支持 `fs.cpSync` 的 Node.js（建议 Node.js 22）并执行：
+
+```bash
+node scripts/test.cjs
+node scripts/build.cjs
+node scripts/check-release.cjs
+```
+
+4. 用前述 HTTP 命令预览发布目录，访问 <http://localhost:8765/>，检查首页跳转、资源和基本操作。这里只是本地预览，不是作业要求的公共地址。
+
+### 已实现的 Actions 发布流程
+
+配置见 [pages.yml](<.github/workflows/pages.yml>)，无需再手写工作流。将本目录作为仓库根目录上传；发布负责人在团队仓库 Settings → Pages 中选择 **GitHub Actions**。
+
+- **推送到 `main`：**自动测试、构建、检查发布包并部署共享站点。
+- **向 `main` 提交 PR：**自动运行测试、构建与发布包检查，不部署 PR 版本。
+- **手动运行：**可在 Actions 中运行工作流；只有选择 `main` 才会执行部署。
+- **构建步骤：**checkout → Node.js 22 → `node scripts/test.cjs` → `node scripts/build.cjs` → `node scripts/check-release.cjs` → 上传完整 Pages artifact。
+- **部署步骤：**构建成功后配置 Pages，使用 `pages: write` 和 `id-token: write` 部署至 `github-pages` 环境；环境记录输出实际网站 URL。
+- **源码关联：**工作流摘要记录该次构建的源码 SHA；应将 Actions run 与对应提交一起核对。PR 构建可能使用 GitHub 生成的合并测试提交，不应冒充已部署的团队 `main`。
+
+上线后，将真实网址补到本文顶部；各成员的文档 PR 经他人审核、回应并合并后，发布最终版本。在私人报告保存最终团队 `main` commit 和匹配部署记录，不把本文自身最终 hash 写进本文。如果 Pages 设置、权限或环境审批阻止部署，应根据 Actions 日志处理，不将失败描述成成功。
+
+本项目无需 `npm install` 即可执行现有测试和复制构建。修改视觉模块或模型后，仍须先按上文重新打包运行时。Pages 不运行后端；本项目目前无需其他托管平台。
+
+## CI/CD exploration — 已核查配置与当前执行结果
+
+CI（Continuous Integration）是自动构建/检查变更；本作业中的 CD（Continuous Deployment）是自动发布接受的版本。当前已实现工作流，但**尚未产生可查验的 GitHub 部署**；下面如实记录已检查的内容和阻碍，不冒充老师要求的一次真实部署观察。
+
+| 记录项 | 已核查的事实 |
+| --- | --- |
+| 配置来源 | 本仓库 [Pages 工作流](<.github/workflows/pages.yml>)、[构建脚本](<scripts/build.cjs>)、[发布校验脚本](<scripts/check-release.cjs>) |
+| 实际部署 / 源码 commit | 团队仓库已确认为 [smiledcell/car](https://github.com/smiledcell/car)，本地已初始化 Git；首次推送后需从 Actions 核对实际 run 与对应 commit，当前尚未验证远程部署 |
+| 触发 | 配置支持 `main` push、向 `main` 的 PR 与手动运行；只有非 PR 的 `main` 构建会部署 |
+| 检查与构建 | 已在本地执行已有静态/核心测试、生成完整发布包并运行发布校验；远程执行尚未发生 |
+| 发布文件 | 构建生成完整 `dist/`：默认首页、游戏入口、本地脚本、模型及上游许可；普通构建不重新生成内嵌运行时 |
+| 结果 / 阻碍 | 本地结果见下文；远程工作流和 Pages 尚未验证，真实网址与 Actions run 需在远程执行后核对 |
+| 自动步骤 | 工作流已实现测试、构建、发布校验、上传与部署；远程生效需实际推送和 Pages 设置 |
+| 人工步骤 | 确定团队仓库并授权发布、选择 Pages 来源、同伴审核、核对真实运行日志、浏览器试玩、全员确认 |
+| 已实现的检查 | 发布校验验证首页在项目子路径及本地文件下的跳转与参数保留，核对脚本、模型和许可文件存在，并核对入口与源码一致 |
+| 有用的缺失检查 | 工作流没有真实浏览器 WebGL 启动、驾驶、有效圈数与重开测试；静态检查及部署成功均不能替代人工试玩 |
+| 全员确认 | 由各成员本人完成，不由 AI 代为确认 |
+
+团队仓库确定后，必须检查至少一次实际部署，并在一位成员的文档 PR 中将上表的阻碍更新为该次 run 链接、源码 commit、实际日志步骤与结果。较早的一次真实部署也可以；不得只凭配置推断远程步骤已运行。
+
+## Contributors
+
+每位成员必须亲自填写或确认自己的真实贡献。以下为待填写结构，不代表已有三位成员；按实际人数增删。发布负责人不自动拥有其他人的作者身份。
+
+| 公开姓名 / GitHub 昵称 | 实际工作与角色 | 文档 PR / 贡献证据 | 本人确认 |
+| --- | --- | --- | --- |
+| 待成员填写 | 待本人填写实际贡献；如为发布负责人则注明 | 待填写真实 PR 链接 | 待确认 |
+
+公开表格不包含学号、官方 ID 或私人报告。每位成员仍须在独立分支完成有用文档改进，提交自己的 PR，给出并收到具体审查、回应后再由发布负责人合并；本表不能替代这些协作记录。
+
+## AI assistance disclosure
+
+本次 Week 07 准备使用 AI 编码助手（DeepSeek Harness 会话）辅助检查本地项目的静态部署适用性、添加默认首页及构建入口、实现 Pages Actions 工作流与发布校验脚本、实际执行已有测试/构建/发布校验，并整理 README 的运行/发布说明、配置事实与当前阻碍。此说明不推定 Week 05 的全部 AI 使用情况；成员如有其他实质 AI 协助，应在相关条目或 PR 中补充实际情况。
+
+AI 未替成员执行 GitHub 登录、确认个人贡献或进行同伴审核；当前没有真实线上部署记录可供本次填写。成员须人工复核文档、命令、贡献与运行结果。个人学习总结由每位成员自行撰写，不由 AI 生成、翻译、改写或润色；本公共 README 不收录私人学习总结及学号。
+
+## 已知限制与最终验收
+
+- 需要支持 WebGL 的现代浏览器；模型、阴影与赛道渲染对设备性能有要求，没有据此保证所有手机或低性能设备可用。
+- 当前说明以键盘操作为主，不能据此承诺完整触屏支持。
+- 最佳圈存储在当前浏览器的 `localStorage`，不跨设备同步；清除站点数据可能丢失记录。
+- 排位 AI 成绩为确定性模拟；比赛物理、碰撞、赛道与维修区布局均有游戏化简化。
+- 本次本地执行已有测试通过：91 项静态/数据检查、11 项比赛核心、9 项排位、8 项维修区、8 项天气测试。这不是线上 CI 结果，也不证明浏览器画面或游戏交互通过。
+- 现有构建只复制预打包运行时，修改其源码输入后必须另行重新打包；发布包保留较多上游文件，有体积优化空间，不能随意删去必要素材和许可。
+- 当前尚未确认线上部署和全员最终试玩；具体线上问题应在真实检查后记录，不能写“无问题”代替未检查。
+
+最终部署后，每位成员应在未登录 GitHub 的浏览器环境打开同一网站，检查开始/游玩、控制、进度、重开、模型及其他素材、声音/静音。声音功能须实际核查；未实现则如实写不适用，不能因包含 Three.js 音频类就宣称有音效。共享私人记录保存实际检查结果、确认和未解决问题；若修复产生新 commit，更新版本与匹配部署证据并复查受影响部分。
+
+## 来源、许可与限制
+
+本项目实际包含并改编了上游代码及素材，不是“未复制代码或素材”的独立重写。上游 APEX FORMULA 2026 由 **Avi Hacker, J.D.** 创作，Copyright 2026，使用 **Apache License 2.0**；完整条款见上游 [LICENSE](<third-party/apex-formula-2026/LICENSE>)，署名与通知见 [NOTICE](<third-party/apex-formula-2026/NOTICE>)。本地改动包括页面桥接、经典运行时与内嵌模型打包、现有比赛逻辑与原视觉系统的连接、小地图整合、可驾驶维修区适配，以及发布构建和检查工具。
+
+随原项目分发的 Three.js 及其 add-ons 使用 MIT 许可，详见 [第三方通知](<third-party/apex-formula-2026/THIRD_PARTY_NOTICES.md>) 和 [Three.js MIT 许可](<third-party/apex-formula-2026/LICENSES/three.js-MIT.txt>)。构建会保留这些许可与通知及 [运行时许可注释](<js/apex-runtime.js.LEGAL.txt>)；再次分发时也应保留。Apache 许可不授予上游或其他权利人的商标权。
+
+这是非官方浏览器赛车模拟器，不代表 F1、FIA 或大奖赛主办方。赛道、赛历、物理、AI 与进站均存在游戏化简化，不应视为官方数据、真实驾驶训练或上游完整功能的等价移植。

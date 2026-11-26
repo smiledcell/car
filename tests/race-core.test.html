@@ -1,0 +1,28 @@
+<!doctype html>
+<meta charset="utf-8"><title>APEX_RACE pure tests</title>
+<style>body{font:16px system-ui;background:#151923;color:#eee;padding:24px}pre{white-space:pre-wrap}.fail{color:#ff9999}.pass{color:#9fdfac}</style>
+<h1>Race core: no Three.js required</h1><p>Open this page directly or over HTTP. All tests run automatically.</p><h2 id="summary">Running…</h2><pre id="log"></pre>
+<script src="../js/race-core.js"></script>
+<script>
+(function(){
+'use strict';
+var A=window.APEX_RACE,results=[],passed=0;
+function ok(x,m){if(!x)throw Error(m||'assertion failed');}
+function near(a,b){ok(Math.abs(a-b)<1e-8,'expected '+b+', got '+a);}
+function test(name,fn){try{fn();passed++;results.push('PASS '+name);}catch(e){results.push('FAIL '+name+': '+e.message);}}
+// Traverse absolute positions with <= .02 normalized laps per sample.
+function move(r,from,to,target){var steps=Math.ceil(Math.abs(to-from)/.02);for(var i=1;i<=steps;i++)A.advance(r,((from+(to-from)*i/steps)%1+1)%1,true,.1,.08,target);}
+test('distance presets and Monaco exception',function(){near(A.raceLaps({id:'china',lengthKm:5},'5'),5);near(A.raceLaps({id:'china',lengthKm:5},'quarter'),16);near(A.raceLaps({id:'monaco',lengthKm:3.337},'quarter'),20);near(A.raceLaps({id:'china',lengthKm:5},'full'),61);});
+test('ordered gates award one lap',function(){var r=A.createRacer('p','P',0);move(r,0,1.02);near(r.completedLaps,1);near(r.lapTimes.length,1);ok(r.lapTimes[0]>0);});
+test('start-line oscillation never awards lap',function(){var r=A.createRacer('p','P',0);for(var i=0;i<10;i++){A.advance(r,.98,true,.1);A.advance(r,.02,true,.1);}near(r.completedLaps,0);});
+test('reverse crossing does not complete lap',function(){var r=A.createRacer('p','P',0);move(r,0,-1.02);near(r.completedLaps,0);ok(r.progress<0);});
+test('jump invalidates lap without adding ranked progress',function(){var r=A.createRacer('p','P',0);var before=A.raceProgress(r);var e=A.advance(r,.4,true,.1);ok(!e.accepted);ok(e.reason==='jump-rejected');ok(!r.lapArmed);near(r.completedLaps,0);near(A.raceProgress(r),before);});
+test('off-road invalidates and next full lap recovers',function(){var r=A.createRacer('p','P',0);move(r,0,.2);A.advance(r,.22,false,.1);ok(!r.lapArmed);move(r,.22,1.02);near(r.completedLaps,0);ok(r.lapArmed);move(r,1.02,2.02);near(r.completedLaps,1);});
+test('finish interpolation and frozen finished state',function(){var r=A.createRacer('p','P',0);move(r,0,.98);var before=r.elapsed;var e=A.advance(r,.02,true,2,.08,1);ok(e.finished);near(r.finishTime,before+1);var frozen=JSON.stringify(r);A.advance(r,.1,true,100,.08,1);ok(JSON.stringify(r)===frozen,'finished racer mutated');});
+test('unfinished ranking uses validated laps then current position',function(){var a=A.createRacer('a','A',0),b=A.createRacer('b','B',1);move(a,0,1.1);move(b,0,.9);ok(A.rankRacers([b,a])[0]===a);var original=[b,a];A.rankRacers(original);ok(original[0]===b,'input array mutated');});
+test('finish order overrides progress; equal progress uses grid',function(){var a=A.createRacer('a','A',2),b=A.createRacer('b','B',1),c=A.createRacer('c','C',0);a.finished=b.finished=true;a.finishTime=12;b.finishTime=10;ok(A.rankRacers([c,a,b])[0]===b);ok(A.rankRacers([c,a,b])[2]===c);a.finished=b.finished=false;ok(A.rankRacers([a,b])[0]===b);});
+test('reverse after completed lap never inflates rank',function(){var a=A.createRacer('a','A',0),b=A.createRacer('b','B',1);move(a,0,1.02);move(b,0,1.10);A.advance(a,.98,true,.1,.08);near(a.completedLaps,1);near(A.raceProgress(a),.98);ok(A.rankRacers([a,b])[0]===b);});
+ test('negative grid starts behind and first line crossing is not a lap',function(){var a=A.createRacer('a','A',1,-.02),b=A.createRacer('b','B',0);ok(A.rankRacers([a,b])[0]===b);move(a,-.02,.02);near(a.completedLaps,0);move(a,.02,1.02);near(a.completedLaps,1);});
+ var summary=document.getElementById('summary');summary.textContent=passed+'/'+results.length+' passed';summary.className=passed===results.length?'pass':'fail';document.getElementById('log').textContent=results.join('\n');window.APEX_TEST_RESULTS={passed:passed,total:results.length,results:results};
+})();
+</script>
