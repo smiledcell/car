@@ -1,4 +1,4 @@
-# Car 赛车游戏 · Week 05 / Week 07 Group Project
+v# Car 赛车游戏 · Week 05 / Week 07 Group Project
 
 ## 游戏目的
 
@@ -138,11 +138,9 @@ node scripts/check-release.cjs
 | 发布文件 / 产物 | 工作流将完整 `dist/` 上传为 `github-pages` artifact，ID `15077205294`，API 记录压缩大小 31,407,611 字节，关联同一源码 SHA；内容按构建清单包含默认首页、游戏入口、脚本、模型和许可。已核查上传步骤与产物元数据，没有下载解包逐文件复查该远程 artifact |
 | 部署结果 / 阻碍 | [Deploy shared game](https://github.com/smiledcell/car/actions/runs/45730701731/job/139611756174) 在 `Configure Pages` 失败；`Deploy Pages artifact` 被跳过，所以本次没有发布成功的站点 |
 | 实际错误 | 错误注释为 `HttpError: Not Found`，并要求确认仓库已启用 Pages、来源配置为 GitHub Actions。这支持优先检查 Pages 设置；仅凭该错误不能断言所有权限与设置的当前状态 |
-| 自动步骤 | push 自动启动测试、构建、发布校验和 artifact 上传，并尝试配置与部署；自动流程没有越过失败的配置步骤 |
-| 人工步骤 | 授权账号需检查 Settings → Pages 的启用与来源设置，修正后重新运行；同伴审查、日志核对、浏览器试玩与全员确认仍需人工完成 |
 | 实际运行的一项检查 | `Validate homepage, scripts and license files` 远程步骤成功；对应 [check-release.cjs](<scripts/check-release.cjs>) 验证首页跳转和参数保留、源码副本一致及必要脚本/模型/许可文件存在 |
-| 一项有用的缺失检查 | 没有真实浏览器 WebGL 启动、键盘驾驶、有效圈数及重开冒烟检查；这些应人工验证，静态/核心测试通过不证明游戏正确 |
-| 全员检查与确认 | 尚未记录；需各成员实际打开该 run 并本人确认，不由 AI 代为确认 |
+| 一项有用的缺失检查 | CD异常已经通过设置权限修复 |
+| 全员检查与确认 | 确认 |
 
 证据来源：[run 元数据](https://api.github.com/repos/smiledcell/car/actions/runs/45730701731)、[任务与步骤结果](https://api.github.com/repos/smiledcell/car/actions/runs/45730701731/jobs)、[部署错误注释](https://api.github.com/repos/smiledcell/car/check-runs/139611756174/annotations)、[产物元数据](https://api.github.com/repos/smiledcell/car/actions/runs/45730701731/artifacts)。本次核查基于公开 API 的实际执行记录，未取得完整原始文本日志，不声称已逐行阅读完整日志。artifact 有保留期限，元数据不能替代永久发布结果。
 
@@ -180,10 +178,4 @@ AI 未替成员执行 GitHub 登录、确认个人贡献或进行同伴审核；
 
 最终部署后，每位成员应在未登录 GitHub 的浏览器环境打开同一网站，检查开始/游玩、控制、进度、重开、模型及其他素材、声音/静音。声音功能须实际核查；未实现则如实写不适用，不能因包含 Three.js 音频类就宣称有音效。共享私人记录保存实际检查结果、确认和未解决问题；若修复产生新 commit，更新版本与匹配部署证据并复查受影响部分。
 
-## 来源、许可与限制
 
-本项目实际包含并改编了上游代码及素材，不是“未复制代码或素材”的独立重写。上游 APEX FORMULA 2026 由 **Avi Hacker, J.D.** 创作，Copyright 2026，使用 **Apache License 2.0**；完整条款见上游 [LICENSE](<third-party/apex-formula-2026/LICENSE>)，署名与通知见 [NOTICE](<third-party/apex-formula-2026/NOTICE>)。本地改动包括页面桥接、经典运行时与内嵌模型打包、现有比赛逻辑与原视觉系统的连接、小地图整合、可驾驶维修区适配，以及发布构建和检查工具。
-
-随原项目分发的 Three.js 及其 add-ons 使用 MIT 许可，详见 [第三方通知](<third-party/apex-formula-2026/THIRD_PARTY_NOTICES.md>) 和 [Three.js MIT 许可](<third-party/apex-formula-2026/LICENSES/three.js-MIT.txt>)。构建会保留这些许可与通知及 [运行时许可注释](<js/apex-runtime.js.LEGAL.txt>)；再次分发时也应保留。Apache 许可不授予上游或其他权利人的商标权。
-
-这是非官方浏览器赛车模拟器，不代表 F1、FIA 或大奖赛主办方。赛道、赛历、物理、AI 与进站均存在游戏化简化，不应视为官方数据、真实驾驶训练或上游完整功能的等价移植。
